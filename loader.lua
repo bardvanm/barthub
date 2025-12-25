@@ -1,7 +1,12 @@
 -- bart hub is open source :)
+-- enjoy modifying it to your liking!
+-- loader.lua
+
+local PREFIX = "https://raw.githubusercontent.com/bardvanm/barthub/main/"
 
 local PLACES = {
-    [79388437164798] = "https://raw.githubusercontent.com/bardvanm/barthub/main/Raise1MillionBees.lua",
+    [79388437164798] = "Raise1MillionBees.lua",
+
 }
 
 local function httpGet(url)
@@ -48,7 +53,15 @@ local function loadRemoteScript(url)
 end
 
 local placeId = (game and game.PlaceId) or 0
-local url = PLACES[placeId]
+local filename = PLACES[placeId]
+
+local url
+if filename then
+    if not filename:match("%.lua$") then
+        filename = filename .. ".lua"
+    end
+    url = PREFIX .. filename
+end
 
 if url then
     print(("loader.lua: detected supported placeId %d, loading %s"):format(placeId, url))
