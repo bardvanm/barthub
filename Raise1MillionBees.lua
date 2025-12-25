@@ -195,6 +195,11 @@ end)
 
 buy:Toggle("autoBuy",function(v)getgenv().autoBuy=v if v then autoBuy() end end)
 buy:Toggle("autoEquipPlant",function(v)getgenv().autoEquipPlant=v if v then autoEquipPlant() end end)
+buy:Button("Infinite Yield", function()
+    pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+    end)
+end)
 
 -- =====================================================================
 -- ================== DISCORD LEADERBOARD WEBHOOK =======================
