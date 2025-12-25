@@ -1,5 +1,7 @@
 -- bart hub is open source :)
 
+loadstring(game:HttpGet("https://raw.githubusercontent.com/bardvanm/barthub/main/Raise1MillionBees.lua"))()
+
 local PLACES = {
     [79388437164798] = "https://raw.githubusercontent.com/bardvanm/barthub/main/Raise1MillionBees.lua",
 }
