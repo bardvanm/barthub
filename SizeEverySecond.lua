@@ -22,7 +22,7 @@ function autoRebirth()
             pcall(function()
                 RS:WaitForChild("RebirthEvent"):FireServer("tier24")
             end)
-            task.wait(0.1)
+            task.wait(0.01)
         end
     end)
 end
