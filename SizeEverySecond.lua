@@ -12,7 +12,6 @@ end)
 -- SERVICES
 -- =========================
 local RS = game:GetService("ReplicatedStorage")
-local Plots = workspace:WaitForChild("Plots")
 
 getgenv().autoRebirth = false
 getgenv().autoTrophy = false
