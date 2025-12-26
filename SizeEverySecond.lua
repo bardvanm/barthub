@@ -12,6 +12,7 @@ end)
 -- SERVICES
 -- =========================
 local RS = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 getgenv().autoRebirth = false
 getgenv().autoTrophy = false
@@ -44,21 +45,15 @@ function autoTrophy()
                     if not getgenv().autoTrophy then break end
                     pcall(function()
                         if firetouchinterest then
-                            -- spam touch (down + up) as fast as possible
                             firetouchinterest(part, hrp, 0)
                             firetouchinterest(part, hrp, 1)
-                        else
-                            -- fallback teleport method (still very fast)
-                            local old = hrp.CFrame
-                            hrp.CFrame = part.CFrame * CFrame.new(0, 0, 2)
-                            task.wait(0)
-                            hrp.CFrame = old
                         end
                     end)
+                    RunService.Heartbeat:Wait() -- one part per render frame
                 end
+            else
+                RunService.Heartbeat:Wait()
             end
-
-            task.wait(0.01) -- minimal wait to spam aggressively while yielding
         end
     end)
 end
