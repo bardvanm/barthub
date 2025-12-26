@@ -30,31 +30,35 @@ end
 function autoTrophy()
     task.spawn(function()
         while getgenv().autoTrophy do
-            pcall(function()
-                local folder = workspace:FindFirstChild("Folder45")
-                local target = nil
-                if folder then
-                    local children = folder:GetChildren()
-                    target = children[18] and children[18]:FindFirstChild("Part82")
+            local parts = {}
+            for _, v in ipairs(workspace:GetDescendants()) do
+                if v:IsA("BasePart") and string.lower(v.Name) == "part82" then
+                    table.insert(parts, v)
                 end
-                if target then
-                    local char = player.Character or player.CharacterAdded:Wait()
-                    local hrp = char:FindFirstChild("HumanoidRootPart") or char.PrimaryPart
-                    if hrp then
+            end
+
+            local char = player.Character or player.CharacterAdded:Wait()
+            local hrp = char:FindFirstChild("HumanoidRootPart") or char.PrimaryPart
+            if hrp and #parts > 0 then
+                for _, part in ipairs(parts) do
+                    if not getgenv().autoTrophy then break end
+                    pcall(function()
                         if firetouchinterest then
-                            firetouchinterest(target, hrp, 0)
-                            task.wait(0.05)
-                            firetouchinterest(target, hrp, 1)
+                            -- spam touch (down + up) as fast as possible
+                            firetouchinterest(part, hrp, 0)
+                            firetouchinterest(part, hrp, 1)
                         else
+                            -- fallback teleport method (still very fast)
                             local old = hrp.CFrame
-                            hrp.CFrame = target.CFrame * CFrame.new(0, 0, 2)
-                            task.wait(0.1)
+                            hrp.CFrame = part.CFrame * CFrame.new(0, 0, 2)
+                            task.wait(0)
                             hrp.CFrame = old
                         end
-                    end
+                    end)
                 end
-            end)
-            task.wait(0.1)
+            end
+
+            task.wait(0.01) -- minimal wait to spam aggressively while yielding
         end
     end)
 end
