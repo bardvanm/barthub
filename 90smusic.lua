@@ -160,21 +160,33 @@ function autoUpgrade()
                     if not getgenv().autoUpgrade then break end
                     local buyButtons = tycoon:FindFirstChild("BuyButtons")
                     if buyButtons then
-                        local prio, rest = {}, {}
+                        local prio1, prio2, rest = {}, {}, {}
+
+                        local function hasKeyword(btn, keywords)
+                            local p = btn.Parent
+                            local g = p and p.Parent
+                            local pn = tostring(p and p.Name or ""):lower()
+                            local gn = tostring(g and g.Name or ""):lower()
+                            for _, kw in ipairs(keywords) do
+                                if pn:find(kw) or gn:find(kw) then return true end
+                            end
+                            return false
+                        end
+
+                        local prio1Keys = {"dropper", "upgrader", "conveyor"}
+                        local prio2Keys = {"walls", "wall", "wall upgrade", "stairs", "stair", "floor", "roof"}
+
                         for _, btn in ipairs(buyButtons:GetDescendants()) do
                             if btn:IsA("BasePart") and btn.Name == "PurchaseButton" then
                                 local ti = btn:FindFirstChild("TouchInterest")
                                 if ti then
-                                    local parentName = tostring(btn.Parent and btn.Parent.Name or ""):lower()
-                                    local isPrio = parentName:find("dropper") or parentName:find("upgrader") or parentName:find("conveyor") or parentName:find("stairs") or parentName:find("stair")
-                                    if not isPrio then
-                                        local gp = btn.Parent and btn.Parent.Parent
-                                        if gp then
-                                            local gpName = tostring(gp.Name):lower()
-                                            isPrio = gpName:find("dropper") or gpName:find("upgrader") or gpName:find("conveyor") or gpName:find("stairs") or gpName:find("stair")
-                                        end
+                                    if hasKeyword(btn, prio1Keys) then
+                                        table.insert(prio1, btn)
+                                    elseif hasKeyword(btn, prio2Keys) then
+                                        table.insert(prio2, btn)
+                                    else
+                                        table.insert(rest, btn)
                                     end
-                                    if isPrio then table.insert(prio, btn) else table.insert(rest, btn) end
                                 end
                             end
                         end
@@ -189,8 +201,10 @@ function autoUpgrade()
                             end
                         end
 
-                        if #prio > 0 then
-                            tap(prio)
+                        if #prio1 > 0 then
+                            tap(prio1)
+                        elseif #prio2 > 0 then
+                            tap(prio2)
                         else
                             tap(rest)
                         end
