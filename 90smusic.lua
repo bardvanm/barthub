@@ -302,7 +302,7 @@ local function pressGuiButton(btn)
 
     if btn.AbsolutePosition and btn.AbsoluteSize then
         local x = btn.AbsolutePosition.X + (btn.AbsoluteSize.X * 0.5)
-        local y = btn.AbsolutePosition.Y + (btn.AbsoluteSize.Y * 0.65)
+        local y = btn.AbsolutePosition.Y + (btn.AbsoluteSize.Y * 0.8)
 
         if vim then
             pcall(function()
