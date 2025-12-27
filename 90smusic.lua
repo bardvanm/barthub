@@ -19,6 +19,33 @@ local RunService = game:GetService("RunService")
 getgenv().spamDroppers = false
 getgenv().autoCollect = false
 getgenv().autoCrate = false
+getgenv().autoCrateDelay = 0.05
+
+-- tracked crates and connections to avoid heavy rescans
+local autoCrateCubes = {}
+local autoCrateAddConn, autoCrateRemoveConn
+local function clearAutoCrateTracking()
+    if autoCrateAddConn then autoCrateAddConn:Disconnect(); autoCrateAddConn = nil end
+    if autoCrateRemoveConn then autoCrateRemoveConn:Disconnect(); autoCrateRemoveConn = nil end
+    for k in pairs(autoCrateCubes) do autoCrateCubes[k] = nil end
+end
+local function seedAutoCrates()
+    for _, child in ipairs(workspace:GetChildren()) do
+        if child:IsA("Model") and child.Name == "MoneyCube" then
+            autoCrateCubes[child] = true
+        end
+    end
+end
+local function hookAutoCrateSignals()
+    autoCrateAddConn = workspace.ChildAdded:Connect(function(obj)
+        if obj:IsA("Model") and obj.Name == "MoneyCube" then
+            autoCrateCubes[obj] = true
+        end
+    end)
+    autoCrateRemoveConn = workspace.ChildRemoved:Connect(function(obj)
+        if autoCrateCubes[obj] then autoCrateCubes[obj] = nil end
+    end)
+end
 
 -- =========================
 -- SPAM FUNCTION
@@ -91,25 +118,30 @@ end
 -- =========================
 function autoCrate()
     task.spawn(function()
+        clearAutoCrateTracking()
+        seedAutoCrates()
+        hookAutoCrateSignals()
+
         while getgenv().autoCrate do
             local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
             if hrp and typeof(firetouchinterest) == "function" then
-                for _, obj in ipairs(workspace:GetDescendants()) do
+                for cube in pairs(autoCrateCubes) do
                     if not getgenv().autoCrate then break end
-                    if obj:IsA("Model") and obj.Name == "MoneyCube" then
-                        local hitbox = obj:FindFirstChild("Hitbox")
-                        local ti = hitbox and hitbox:FindFirstChild("TouchInterest")
-                        if hitbox and ti then
-                            pcall(function()
-                                firetouchinterest(hrp, hitbox, 0)
-                                firetouchinterest(hrp, hitbox, 1)
-                            end)
-                        end
+                    local hitbox = cube:FindFirstChild("Hitbox")
+                    local ti = hitbox and hitbox:FindFirstChild("TouchInterest")
+                    if hitbox and ti then
+                        pcall(function()
+                            firetouchinterest(hrp, hitbox, 0)
+                            firetouchinterest(hrp, hitbox, 1)
+                        end)
                     end
                 end
             end
             RunService.Heartbeat:Wait()
+            task.wait(getgenv().autoCrateDelay or 0.05)
         end
+
+        clearAutoCrateTracking()
     end)
 end
 
@@ -133,4 +165,8 @@ end)
 auto:Toggle("Auto Crate", function(v)
     getgenv().autoCrate = v
     if v then autoCrate() end
+end)
+
+auto:Slider("Crate Delay (s)", {min = 0.05, max = 0.25, step = 0.01}, function(v)
+    getgenv().autoCrateDelay = v
 end)
