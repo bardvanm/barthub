@@ -22,6 +22,7 @@ getgenv().autoCrate = false
 getgenv().autoCrateDelay = 0.05
 getgenv().autoUpgrade = false
 getgenv().autoSave = false
+getgenv().autoComplete = false
 
 -- tracked crates and connections to avoid heavy rescans
 local autoCrateCubes = {}
@@ -173,8 +174,8 @@ function autoUpgrade()
                             return false
                         end
 
-                        local prio1Keys = {"dropper", "upgrader", "conveyor"}
-                        local prio2Keys = {"walls", "wall", "wall upgrade", "stairs", "stair", "floor", "roof"}
+                        local prio1Keys = {"dropper", "upgrader", "conveyor", "fence"}
+                        local prio2Keys = {"walls", "wall", "wall upgrade", "stairs", "stair", "floor", "roof", "windows", "window"}
 
                         for _, btn in ipairs(buyButtons:GetDescendants()) do
                             if btn:IsA("BasePart") and btn.Name == "PurchaseButton" then
@@ -237,6 +238,103 @@ function autoSave()
 end
 
 -- =========================
+-- AUTO COMPLETE FUNCTION
+-- =========================
+local function findCompletionYesButton()
+    local pg = player:FindFirstChildOfClass("PlayerGui") or player:WaitForChild("PlayerGui")
+    local promptRoot
+    for _, d in ipairs(pg:GetDescendants()) do
+        if d:IsA("TextLabel") or d:IsA("TextButton") then
+            local t = tostring(d.Text or ""):lower()
+            if t:find("complete your tycoon") then
+                promptRoot = d.Parent or d
+                break
+            end
+        end
+    end
+    if not promptRoot then
+        -- fallback: any YES button
+        for _, d in ipairs(pg:GetDescendants()) do
+            if d:IsA("TextButton") then
+                local t = tostring(d.Text or ""):lower()
+                if t == "yes" or t:find("yes") then
+                    return d
+                end
+            end
+        end
+        return nil
+    end
+    -- look for a YES button near the prompt
+    for _, d in ipairs(promptRoot:GetDescendants()) do
+        if d:IsA("TextButton") then
+            local t = tostring(d.Text or ""):lower()
+            if t == "yes" or t:find("yes") then
+                return d
+            end
+        end
+    end
+    -- broaden search one level up
+    local parent = promptRoot.Parent
+    if parent then
+        for _, d in ipairs(parent:GetDescendants()) do
+            if d:IsA("TextButton") then
+                local t = tostring(d.Text or ""):lower()
+                if t == "yes" or t:find("yes") then
+                    return d
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function pressGuiButton(btn)
+    if not btn then return end
+    local ok = false
+    -- prefer VirtualInputManager for a reliable click
+    local vim = (pcall(function() return game:GetService("VirtualInputManager") end) and game:GetService("VirtualInputManager")) or nil
+    if vim and btn.AbsolutePosition and btn.AbsoluteSize then
+        local x = btn.AbsolutePosition.X + (btn.AbsoluteSize.X/2)
+        local y = btn.AbsolutePosition.Y + (btn.AbsoluteSize.Y/2)
+        pcall(function()
+            vim:SendMouseButtonEvent(x, y, 0, true, btn, 1)
+            vim:SendMouseButtonEvent(x, y, 0, false, btn, 1)
+        end)
+        ok = true
+    end
+    if not ok then
+        pcall(function() if btn.Activate then btn:Activate() end end)
+    end
+end
+
+function autoComplete()
+    task.spawn(function()
+        local TYCOONS_FOLDER = workspace:FindFirstChild("Tycoons")
+        while getgenv().autoComplete do
+            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            if hrp and typeof(firetouchinterest) == "function" and TYCOONS_FOLDER then
+                for _, tycoon in ipairs(TYCOONS_FOLDER:GetChildren()) do
+                    if not getgenv().autoComplete then break end
+                    local ch = tycoon:FindFirstChild("CompletionHandler")
+                    local cp = ch and ch:FindFirstChild("CompletePart")
+                    local ti = cp and cp:FindFirstChild("TouchInterest")
+                    if cp and ti then
+                        pcall(function()
+                            firetouchinterest(hrp, cp, 0)
+                            firetouchinterest(hrp, cp, 1)
+                        end)
+                        task.wait(0.1)
+                        local yesBtn = findCompletionYesButton()
+                        if yesBtn then pressGuiButton(yesBtn) end
+                    end
+                end
+            end
+            RunService.Heartbeat:Wait()
+        end
+    end)
+end
+
+-- =========================
 -- GUI
 -- =========================
 local lib = loadstring(game:HttpGet("https://raw.githubusercontent.com/bardvanm/bartlib/main/bartlib.lua"))()
@@ -270,4 +368,9 @@ end)
 auto:Toggle("Auto Save", function(v)
     getgenv().autoSave = v
     if v then autoSave() end
+end)
+
+auto:Toggle("Auto Complete", function(v)
+    getgenv().autoComplete = v
+    if v then autoComplete() end
 end)
