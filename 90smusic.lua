@@ -242,18 +242,17 @@ end
 -- AUTO COMPLETE FUNCTION
 -- =========================
 local function findCompletionYesButton()
-    local pg = player:FindFirstChildOfClass("PlayerGui") or player:WaitForChild("PlayerGui")
-    
-    -- broad search: look for any visible TextButton or ImageButton with "yes" in text
-    for _, d in ipairs(pg:GetDescendants()) do
-        if (d:IsA("TextButton") or d:IsA("ImageButton")) and d.Visible then
-            local t = tostring(d.Text or ""):lower()
-            if t == "yes" or t:find("yes") then
-                return d
+    local sg = game:GetService("StarterGui")
+    local completionUI = sg:FindFirstChild("CompletionUI")
+    if completionUI then
+        local container = completionUI:FindFirstChild("Container")
+        if container then
+            local yesBtn = container:FindFirstChild("YesButton")
+            if yesBtn then
+                return yesBtn
             end
         end
     end
-    
     return nil
 end
 
