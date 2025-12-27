@@ -159,18 +159,37 @@ function autoUpgrade()
                     if not getgenv().autoUpgrade then break end
                     local buyButtons = tycoon:FindFirstChild("BuyButtons")
                     if buyButtons then
+                        local prio, rest = {}, {}
                         for _, btn in ipairs(buyButtons:GetDescendants()) do
-                            if not getgenv().autoUpgrade then break end
                             if btn:IsA("BasePart") and btn.Name == "PurchaseButton" then
                                 local ti = btn:FindFirstChild("TouchInterest")
                                 if ti then
-                                    pcall(function()
-                                        firetouchinterest(hrp, btn, 0)
-                                        firetouchinterest(hrp, btn, 1)
-                                    end)
+                                    local parentName = tostring(btn.Parent and btn.Parent.Name or ""):lower()
+                                    local isPrio = parentName:find("dropper") or parentName:find("upgrader") or parentName:find("conveyor")
+                                    if not isPrio then
+                                        local gp = btn.Parent and btn.Parent.Parent
+                                        if gp then
+                                            local gpName = tostring(gp.Name):lower()
+                                            isPrio = gpName:find("dropper") or gpName:find("upgrader") or gpName:find("conveyor")
+                                        end
+                                    end
+                                    if isPrio then table.insert(prio, btn) else table.insert(rest, btn) end
                                 end
                             end
                         end
+
+                        local function tap(list)
+                            for _, btn in ipairs(list) do
+                                if not getgenv().autoUpgrade then break end
+                                pcall(function()
+                                    firetouchinterest(hrp, btn, 0)
+                                    firetouchinterest(hrp, btn, 1)
+                                end)
+                            end
+                        end
+
+                        tap(prio)
+                        tap(rest)
                     end
                 end
             end
