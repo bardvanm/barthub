@@ -291,21 +291,37 @@ end
 
 local function pressGuiButton(btn)
     if not btn then return end
-    local ok = false
-    -- prefer VirtualInputManager for a reliable click
-    local vim = (pcall(function() return game:GetService("VirtualInputManager") end) and game:GetService("VirtualInputManager")) or nil
+    -- try multiple methods to click the button
+    local success = false
+    
+    -- method 1: fire MouseButton1Click signal directly
+    pcall(function()
+        for _, conn in pairs(getconnections(btn.MouseButton1Click)) do
+            conn:Fire()
+            success = true
+        end
+    end)
+    
+    if success then return end
+    
+    -- method 2: VirtualInputManager
+    local vim = pcall(function() return game:GetService("VirtualInputManager") end) and game:GetService("VirtualInputManager")
     if vim and btn.AbsolutePosition and btn.AbsoluteSize then
-        local x = btn.AbsolutePosition.X + (btn.AbsoluteSize.X/2)
-        local y = btn.AbsolutePosition.Y + (btn.AbsoluteSize.Y/2)
         pcall(function()
+            local x = btn.AbsolutePosition.X + (btn.AbsoluteSize.X/2)
+            local y = btn.AbsolutePosition.Y + (btn.AbsoluteSize.Y/2)
             vim:SendMouseButtonEvent(x, y, 0, true, btn, 1)
+            task.wait(0.05)
             vim:SendMouseButtonEvent(x, y, 0, false, btn, 1)
         end)
-        ok = true
     end
-    if not ok then
-        pcall(function() if btn.Activate then btn:Activate() end end)
-    end
+    
+    -- method 3: try Activate as fallback
+    pcall(function()
+        if btn.Activate then
+            btn:Activate()
+        end
+    end)
 end
 
 function autoComplete()
