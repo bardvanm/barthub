@@ -20,6 +20,7 @@ getgenv().spamDroppers = false
 getgenv().autoCollect = false
 getgenv().autoCrate = false
 getgenv().autoCrateDelay = 0.05
+getgenv().autoUpgrade = false
 
 -- tracked crates and connections to avoid heavy rescans
 local autoCrateCubes = {}
@@ -146,6 +147,39 @@ function autoCrate()
 end
 
 -- =========================
+-- AUTO UPGRADE FUNCTION
+-- =========================
+function autoUpgrade()
+    task.spawn(function()
+        local TYCOONS_FOLDER = workspace:FindFirstChild("Tycoons")
+        while getgenv().autoUpgrade do
+            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            if hrp and typeof(firetouchinterest) == "function" and TYCOONS_FOLDER then
+                for _, tycoon in ipairs(TYCOONS_FOLDER:GetChildren()) do
+                    if not getgenv().autoUpgrade then break end
+                    local buyButtons = tycoon:FindFirstChild("BuyButtons")
+                    if buyButtons then
+                        for _, btn in ipairs(buyButtons:GetDescendants()) do
+                            if not getgenv().autoUpgrade then break end
+                            if btn:IsA("BasePart") and btn.Name == "PurchaseButton" then
+                                local ti = btn:FindFirstChild("TouchInterest")
+                                if ti then
+                                    pcall(function()
+                                        firetouchinterest(hrp, btn, 0)
+                                        firetouchinterest(hrp, btn, 1)
+                                    end)
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+            RunService.Heartbeat:Wait()
+        end
+    end)
+end
+
+-- =========================
 -- GUI
 -- =========================
 local lib = loadstring(game:HttpGet("https://raw.githubusercontent.com/bardvanm/bartlib/main/bartlib.lua"))()
@@ -169,4 +203,9 @@ end)
 
 auto:Slider("Crate Delay (s)", {min = 0.05, max = 0.25, step = 0.01}, function(v)
     getgenv().autoCrateDelay = v
+end)
+
+auto:Toggle("Auto Upgrade", function(v)
+    getgenv().autoUpgrade = v
+    if v then autoUpgrade() end
 end)
