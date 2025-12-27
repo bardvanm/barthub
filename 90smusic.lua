@@ -349,20 +349,45 @@ function autoComplete()
                             firetouchinterest(hrp, cp, 0)
                             firetouchinterest(hrp, cp, 1)
                         end)
-                        task.wait(3)
+                        
 
-                        local yesBtn = findCompletionYesButton()
-                        if yesBtn then
-                            pressGuiButton(yesBtn)
+                        -- force disable in case they re-enabled
+                        for name in pairs(toggleStarters) do
+                            getgenv()[name] = false
                         end
+                        task.wait(3)
+                        local vim = game:GetService("VirtualInputManager")
+                        local uis = game:GetService("UserInputService")
+                        
+                        -- YES button at x684 y306
+                        pcall(function()
+                            vim:SendMouseButtonEvent(684, 306, 0, true, nil, 1)
+                            task.wait(0.03)
+                            vim:SendMouseButtonEvent(684, 306, 0, false, nil, 1)
+                        end)
+                        pcall(function()
+                            uis:SendMouseButtonEvent(684, 306, 0, true)
+                            task.wait(0.03)
+                            uis:SendMouseButtonEvent(684, 306, 0, false)
+                        end)
 
                         task.wait(5)
 
                         setSelectedTycoonType("RadioNoggin")
-                        local beginBtn = findBeginButton()
-                        if beginBtn then
-                            pressGuiButton(beginBtn)
-                        end
+
+                        task.wait(3)
+                        
+                        -- BEGIN button at x551 y468
+                        pcall(function()
+                            vim:SendMouseButtonEvent(551, 468, 0, true, nil, 1)
+                            task.wait(0.03)
+                            vim:SendMouseButtonEvent(551, 468, 0, false, nil, 1)
+                        end)
+                        pcall(function()
+                            uis:SendMouseButtonEvent(551, 468, 0, true)
+                            task.wait(0.03)
+                            uis:SendMouseButtonEvent(551, 468, 0, false)
+                        end)
 
                         task.wait(2)
 
