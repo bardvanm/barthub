@@ -7,6 +7,7 @@ local PREFIX = "https://raw.githubusercontent.com/bardvanm/barthub/main/"
 local PLACES = {
     [79388437164798] = "Raise1MillionBees.lua",
     [117131591222760] = "SizeEverySecond.lua",
+    [105547128396901] = "90smusic.lua",
 }
 
 local function httpGet(url)
