@@ -1,5 +1,5 @@
 repeat task.wait() until game:IsLoaded()
--- yurr
+-- hehexd
 local vu = game:GetService("VirtualUser")
 local player = game.Players.LocalPlayer
 player.Idled:Connect(function()
@@ -254,8 +254,8 @@ end
 -- AUTO COMPLETE FUNCTION
 -- =========================
 local function findCompletionYesButton()
-    local sg = game:GetService("StarterGui")
-    local completionUI = sg:FindFirstChild("CompletionUI")
+    local pg = player:FindFirstChild("PlayerGui") or player:WaitForChild("PlayerGui")
+    local completionUI = pg:FindFirstChild("CompletionUI")
     if completionUI then
         local container = completionUI:FindFirstChild("Container")
         if container then
