@@ -258,37 +258,93 @@ end
 
 local function pressGuiButton(btn)
     if not btn then return end
-    -- try multiple methods to click the button
-    local success = false
     
-    -- method 1: fire MouseButton1Click signal directly
+    -- method 1: direct signal fire via getconnections
     pcall(function()
-        for _, conn in pairs(getconnections(btn.MouseButton1Click)) do
-            conn:Fire()
-            success = true
+        if btn.MouseButton1Click then
+            for _, conn in pairs(getconnections(btn.MouseButton1Click)) do
+                conn:Fire()
+            end
         end
     end)
+    task.wait(0.1)
     
-    if success then return end
+    -- method 2: try Activate
+    pcall(function()
+        btn:Activate()
+    end)
+    task.wait(0.1)
     
-    -- method 2: VirtualInputManager
+    -- method 3: try firing MouseButton1Down and MouseButton1Up
+    pcall(function()
+        if btn:FindFirstChild("MouseButton1Down") then
+            for _, conn in pairs(getconnections(btn.MouseButton1Down)) do
+                conn:Fire()
+            end
+        end
+        task.wait(0.05)
+        if btn:FindFirstChild("MouseButton1Up") then
+            for _, conn in pairs(getconnections(btn.MouseButton1Up)) do
+                conn:Fire()
+            end
+        end
+    end)
+    task.wait(0.1)
+    
+    -- method 4: VirtualInputManager with multiple attempts
     local vim = pcall(function() return game:GetService("VirtualInputManager") end) and game:GetService("VirtualInputManager")
     if vim and btn.AbsolutePosition and btn.AbsoluteSize then
         pcall(function()
             local x = btn.AbsolutePosition.X + (btn.AbsoluteSize.X/2)
             local y = btn.AbsolutePosition.Y + (btn.AbsoluteSize.Y/2)
-            vim:SendMouseButtonEvent(x, y, 0, true, btn, 1)
-            task.wait(0.05)
-            vim:SendMouseButtonEvent(x, y, 0, false, btn, 1)
+            -- try multiple rapid clicks
+            for i = 1, 3 do
+                vim:SendMouseButtonEvent(x, y, 0, true, btn, 1)
+                task.wait(0.05)
+                vim:SendMouseButtonEvent(x, y, 0, false, btn, 1)
+                task.wait(0.05)
+            end
         end)
     end
+    task.wait(0.1)
     
-    -- method 3: try Activate as fallback
+    -- method 5: try InputBegan/InputEnded on the button
     pcall(function()
-        if btn.Activate then
-            btn:Activate()
+        local input = Instance.new("InputObject")
+        input.UserInputType = Enum.UserInputType.MouseButton1
+        if btn.InputBegan then
+            for _, conn in pairs(getconnections(btn.InputBegan)) do
+                conn:Fire(input, false)
+            end
+        end
+        task.wait(0.05)
+        if btn.InputEnded then
+            for _, conn in pairs(getconnections(btn.InputEnded)) do
+                conn:Fire(input, false)
+            end
         end
     end)
+    task.wait(0.1)
+    
+    -- method 6: try calling any internal _click method
+    pcall(function()
+        if btn._click then
+            btn:_click()
+        end
+    end)
+    task.wait(0.1)
+    
+    -- method 7: try UserInputService synthetic input
+    local uis = pcall(function() return game:GetService("UserInputService") end) and game:GetService("UserInputService")
+    if uis and btn.AbsolutePosition and btn.AbsoluteSize then
+        pcall(function()
+            local x = btn.AbsolutePosition.X + (btn.AbsoluteSize.X/2)
+            local y = btn.AbsolutePosition.Y + (btn.AbsoluteSize.Y/2)
+            uis:SendMouseButtonEvent(x, y, 0, true)
+            task.wait(0.05)
+            uis:SendMouseButtonEvent(x, y, 0, false)
+        end)
+    end
 end
 
 function autoComplete()
