@@ -30,7 +30,17 @@ end
 
 function autoTrophy()
     task.spawn(function()
+        local STOP_WINS = 9e18 -- 9,000,000,000,000,000,000
         while getgenv().autoTrophy do
+            -- stop condition: if Wins reached threshold, disable autoTrophy
+            local leaderstats = player:FindFirstChild("leaderstats")
+            local wins = leaderstats and leaderstats:FindFirstChild("Wins")
+            if wins and wins.Value >= STOP_WINS then
+                warn("autoTrophy disabled: Wins reached " .. tostring(STOP_WINS))
+                getgenv().autoTrophy = false
+                break
+            end
+
             local parts = {}
             for _, v in ipairs(workspace:GetDescendants()) do
                 if v:IsA("BasePart") and string.lower(v.Name) == "part82" then
@@ -43,6 +53,14 @@ function autoTrophy()
             if hrp and #parts > 0 then
                 for _, part in ipairs(parts) do
                     if not getgenv().autoTrophy then break end
+                    -- check wins again inside loop to stop immediately if changed
+                    leaderstats = player:FindFirstChild("leaderstats")
+                    wins = leaderstats and leaderstats:FindFirstChild("Wins")
+                    if wins and wins.Value >= STOP_WINS then
+                        warn("autoTrophy disabled: Wins reached " .. tostring(STOP_WINS))
+                        getgenv().autoTrophy = false
+                        break
+                    end
                     pcall(function()
                         if firetouchinterest then
                             firetouchinterest(part, hrp, 0)
