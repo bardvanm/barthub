@@ -1,5 +1,5 @@
 repeat task.wait() until game:IsLoaded()
-
+-- yurr
 local vu = game:GetService("VirtualUser")
 local player = game.Players.LocalPlayer
 player.Idled:Connect(function()
@@ -243,49 +243,17 @@ end
 -- =========================
 local function findCompletionYesButton()
     local pg = player:FindFirstChildOfClass("PlayerGui") or player:WaitForChild("PlayerGui")
-    local promptRoot
+    
+    -- broad search: look for any visible TextButton or ImageButton with "yes" in text
     for _, d in ipairs(pg:GetDescendants()) do
-        if d:IsA("TextLabel") or d:IsA("TextButton") then
-            local t = tostring(d.Text or ""):lower()
-            if t:find("complete your tycoon") then
-                promptRoot = d.Parent or d
-                break
-            end
-        end
-    end
-    if not promptRoot then
-        -- fallback: any YES button
-        for _, d in ipairs(pg:GetDescendants()) do
-            if d:IsA("TextButton") then
-                local t = tostring(d.Text or ""):lower()
-                if t == "yes" or t:find("yes") then
-                    return d
-                end
-            end
-        end
-        return nil
-    end
-    -- look for a YES button near the prompt
-    for _, d in ipairs(promptRoot:GetDescendants()) do
-        if d:IsA("TextButton") then
+        if (d:IsA("TextButton") or d:IsA("ImageButton")) and d.Visible then
             local t = tostring(d.Text or ""):lower()
             if t == "yes" or t:find("yes") then
                 return d
             end
         end
     end
-    -- broaden search one level up
-    local parent = promptRoot.Parent
-    if parent then
-        for _, d in ipairs(parent:GetDescendants()) do
-            if d:IsA("TextButton") then
-                local t = tostring(d.Text or ""):lower()
-                if t == "yes" or t:find("yes") then
-                    return d
-                end
-            end
-        end
-    end
+    
     return nil
 end
 
