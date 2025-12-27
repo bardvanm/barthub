@@ -23,6 +23,7 @@ getgenv().autoCrateDelay = 0.05
 getgenv().autoUpgrade = false
 getgenv().autoSave = false
 getgenv().autoComplete = false
+getgenv().autoTrash = false
 
 -- tracked crates and connections to avoid heavy rescans
 local autoCrateCubes = {}
@@ -310,26 +311,75 @@ end
 function autoComplete()
     task.spawn(function()
         local TYCOONS_FOLDER = workspace:FindFirstChild("Tycoons")
+        local lastCompleteAttempt = 0
         while getgenv().autoComplete do
-            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-            if hrp and typeof(firetouchinterest) == "function" and TYCOONS_FOLDER then
-                for _, tycoon in ipairs(TYCOONS_FOLDER:GetChildren()) do
-                    if not getgenv().autoComplete then break end
-                    local ch = tycoon:FindFirstChild("CompletionHandler")
-                    local cp = ch and ch:FindFirstChild("CompletePart")
-                    local ti = cp and cp:FindFirstChild("TouchInterest")
-                    if cp and ti then
-                        pcall(function()
-                            firetouchinterest(hrp, cp, 0)
-                            firetouchinterest(hrp, cp, 1)
-                        end)
-                        task.wait(0.1)
-                        local yesBtn = findCompletionYesButton()
-                        if yesBtn then pressGuiButton(yesBtn) end
+            local now = tick()
+            -- only attempt every 2 seconds to avoid freeze from GUI scanning
+            if now - lastCompleteAttempt >= 2 then
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                if hrp and typeof(firetouchinterest) == "function" and TYCOONS_FOLDER then
+                    for _, tycoon in ipairs(TYCOONS_FOLDER:GetChildren()) do
+                        if not getgenv().autoComplete then break end
+                        local ch = tycoon:FindFirstChild("CompletionHandler")
+                        local cp = ch and ch:FindFirstChild("CompletePart")
+                        local ti = cp and cp:FindFirstChild("TouchInterest")
+                        if cp and ti then
+                            pcall(function()
+                                firetouchinterest(hrp, cp, 0)
+                                firetouchinterest(hrp, cp, 1)
+                            end)
+                            task.wait(0.3)
+                            local yesBtn = findCompletionYesButton()
+                            if yesBtn then
+                                pressGuiButton(yesBtn)
+                                task.wait(4) -- wait for completion to process
+                                -- reclaim tycoon after completion
+                                local rs = game:GetService("ReplicatedStorage")
+                                local remotes = rs:FindFirstChild("RemoteEvents")
+                                local tycoonSel = remotes and remotes:FindFirstChild("TycoonSelected")
+                                if tycoonSel then
+                                    pcall(function()
+                                        tycoonSel:FireServer(player.Name)
+                                    end)
+                                end
+                                lastCompleteAttempt = tick()
+                                task.wait(2) -- cooldown after completing to avoid repeated scans
+                            end
+                        end
                     end
                 end
+                lastCompleteAttempt = now
             end
-            RunService.Heartbeat:Wait()
+            task.wait(0.5) -- longer wait to reduce load
+        end
+    end)
+end
+
+-- =========================
+-- AUTO TRASH FUNCTION
+-- =========================
+function autoTrash()
+    task.spawn(function()
+        local lastTrashTime = 0
+        while getgenv().autoTrash do
+            local now = tick()
+            if now - lastTrashTime >= 10 then
+                local searchables = workspace:FindFirstChild("Searchables")
+                if searchables then
+                    for _, obj in ipairs(searchables:GetChildren()) do
+                        if not getgenv().autoTrash then break end
+                        if obj:IsA("Model") and obj.Name == "TrashCanSearchable" then
+                            local clickable = obj:FindFirstChild("ClickablePart")
+                            local cd = clickable and clickable:FindFirstChild("ClickDetector")
+                            if cd then
+                                pcall(function() fireclickdetector(cd) end)
+                            end
+                        end
+                    end
+                end
+                lastTrashTime = now
+            end
+            task.wait(0.5)
         end
     end)
 end
@@ -373,4 +423,9 @@ end)
 auto:Toggle("Auto Complete", function(v)
     getgenv().autoComplete = v
     if v then autoComplete() end
+end)
+
+auto:Toggle("Auto Trash", function(v)
+    getgenv().autoTrash = v
+    if v then autoTrash() end
 end)
