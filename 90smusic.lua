@@ -25,6 +25,18 @@ getgenv().autoSave = false
 getgenv().autoComplete = false
 getgenv().autoTrash = false
 
+-- force selected tycoon type
+local function setSelectedTycoonType(value)
+    task.spawn(function()
+        local pg = player:FindFirstChild("PlayerGui") or player:WaitForChild("PlayerGui")
+        local selectionUI = pg and (pg:FindFirstChild("SelectionUI") or pg:WaitForChild("SelectionUI", 5))
+        local selected = selectionUI and (selectionUI:FindFirstChild("SelectedTycoonType") or selectionUI:WaitForChild("SelectedTycoonType", 5))
+        if selected then
+            pcall(function() selected.Value = value end)
+        end
+    end)
+end
+
 -- tracked crates and connections to avoid heavy rescans
 local autoCrateCubes = {}
 local autoCrateAddConn, autoCrateRemoveConn
@@ -258,56 +270,62 @@ end
 
 local function pressGuiButton(btn)
     if not btn then return end
-    
+
+    local function log(name) print("[AutoComplete] "..name) end
+
     -- method 1: direct signal fire via getconnections
     pcall(function()
         if btn.MouseButton1Click then
             for _, conn in pairs(getconnections(btn.MouseButton1Click)) do
                 conn:Fire()
+                log("MouseButton1Click fired")
             end
         end
     end)
-    task.wait(0.1)
-    
+    task.wait(0.05)
+
     -- method 2: try Activate
     pcall(function()
         btn:Activate()
+        log("Activate called")
     end)
-    task.wait(0.1)
-    
+    task.wait(0.05)
+
     -- method 3: try firing MouseButton1Down and MouseButton1Up
     pcall(function()
         if btn:FindFirstChild("MouseButton1Down") then
             for _, conn in pairs(getconnections(btn.MouseButton1Down)) do
                 conn:Fire()
+                log("MouseButton1Down fired")
             end
         end
-        task.wait(0.05)
+        task.wait(0.02)
         if btn:FindFirstChild("MouseButton1Up") then
             for _, conn in pairs(getconnections(btn.MouseButton1Up)) do
                 conn:Fire()
+                log("MouseButton1Up fired")
             end
         end
     end)
-    task.wait(0.1)
-    
+    task.wait(0.05)
+
     -- method 4: VirtualInputManager with multiple attempts
     local vim = pcall(function() return game:GetService("VirtualInputManager") end) and game:GetService("VirtualInputManager")
     if vim and btn.AbsolutePosition and btn.AbsoluteSize then
         pcall(function()
             local x = btn.AbsolutePosition.X + (btn.AbsoluteSize.X/2)
             local y = btn.AbsolutePosition.Y + (btn.AbsoluteSize.Y/2)
-            -- try multiple rapid clicks
             for i = 1, 3 do
                 vim:SendMouseButtonEvent(x, y, 0, true, btn, 1)
-                task.wait(0.05)
+                task.wait(0.02)
                 vim:SendMouseButtonEvent(x, y, 0, false, btn, 1)
-                task.wait(0.05)
+                task.wait(0.02)
             end
+            log("VirtualInputManager clicked")
         end)
     end
-    task.wait(0.1)
-    
+    task.wait(0.05)
+
     -- method 5: try InputBegan/InputEnded on the button
     pcall(function()
         local input = Instance.new("InputObject")
@@ -315,25 +333,28 @@ local function pressGuiButton(btn)
         if btn.InputBegan then
             for _, conn in pairs(getconnections(btn.InputBegan)) do
                 conn:Fire(input, false)
+                log("InputBegan fired")
             end
         end
-        task.wait(0.05)
+        task.wait(0.02)
         if btn.InputEnded then
             for _, conn in pairs(getconnections(btn.InputEnded)) do
                 conn:Fire(input, false)
+                log("InputEnded fired")
             end
         end
     end)
-    task.wait(0.1)
-    
+    task.wait(0.05)
+
     -- method 6: try calling any internal _click method
     pcall(function()
         if btn._click then
             btn:_click()
+            log("_click called")
         end
     end)
-    task.wait(0.1)
-    
+    task.wait(0.05)
+
     -- method 7: try UserInputService synthetic input
     local uis = pcall(function() return game:GetService("UserInputService") end) and game:GetService("UserInputService")
     if uis and btn.AbsolutePosition and btn.AbsoluteSize then
@@ -341,8 +362,9 @@ local function pressGuiButton(btn)
             local x = btn.AbsolutePosition.X + (btn.AbsoluteSize.X/2)
             local y = btn.AbsolutePosition.Y + (btn.AbsoluteSize.Y/2)
             uis:SendMouseButtonEvent(x, y, 0, true)
-            task.wait(0.05)
+            task.wait(0.02)
             uis:SendMouseButtonEvent(x, y, 0, false)
+            log("UserInputService clicked")
         end)
     end
 end
@@ -463,6 +485,9 @@ auto:Toggle("Auto Complete", function(v)
     getgenv().autoComplete = v
     if v then autoComplete() end
 end)
+
+-- set preferred tycoon type on load
+setSelectedTycoonType("RadioNoggin")
 
 auto:Toggle("Auto Trash", function(v)
     getgenv().autoTrash = v
