@@ -268,150 +268,117 @@ local function findCompletionYesButton()
     return nil
 end
 
+local function findBeginButton()
+    local pg = player:FindFirstChild("PlayerGui") or player:WaitForChild("PlayerGui")
+    local selectionUI = pg:FindFirstChild("SelectionUI")
+    if selectionUI then
+        for _, d in ipairs(selectionUI:GetDescendants()) do
+            if d:IsA("TextButton") or d:IsA("ImageButton") then
+                local t = tostring(d.Text or ""):lower()
+                local n = tostring(d.Name or ""):lower()
+                if t:find("begin") or n:find("begin") then
+                    return d
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local toggleStarters = {
+    spamDroppers = spamDroppers,
+    autoCollect = autoCollect,
+    autoCrate = autoCrate,
+    autoUpgrade = autoUpgrade,
+    autoSave = autoSave,
+    autoTrash = autoTrash,
+}
+
 local function pressGuiButton(btn)
     if not btn then return end
 
-    local function log(name) print("[AutoComplete] "..name) end
-
-    -- method 1: direct signal fire via getconnections
-    pcall(function()
-        if btn.MouseButton1Click then
-            for _, conn in pairs(getconnections(btn.MouseButton1Click)) do
-                conn:Fire()
-                log("MouseButton1Click fired")
-            end
-        end
-    end)
-    task.wait(0.05)
-
-    -- method 2: try Activate
-    pcall(function()
-        btn:Activate()
-        log("Activate called")
-    end)
-    task.wait(0.05)
-
-    -- method 3: try firing MouseButton1Down and MouseButton1Up
-    pcall(function()
-        if btn:FindFirstChild("MouseButton1Down") then
-            for _, conn in pairs(getconnections(btn.MouseButton1Down)) do
-                conn:Fire()
-                log("MouseButton1Down fired")
-            end
-        end
-        task.wait(0.02)
-        if btn:FindFirstChild("MouseButton1Up") then
-            for _, conn in pairs(getconnections(btn.MouseButton1Up)) do
-                conn:Fire()
-                log("MouseButton1Up fired")
-            end
-        end
-    end)
-    task.wait(0.05)
-
-    -- method 4: VirtualInputManager with multiple attempts
     local vim = pcall(function() return game:GetService("VirtualInputManager") end) and game:GetService("VirtualInputManager")
-    if vim and btn.AbsolutePosition and btn.AbsoluteSize then
-        pcall(function()
-            local x = btn.AbsolutePosition.X + (btn.AbsoluteSize.X/2)
-            local y = btn.AbsolutePosition.Y + (btn.AbsoluteSize.Y/2)
-            for i = 1, 3 do
-                vim:SendMouseButtonEvent(x, y, 0, true, btn, 1)
-                task.wait(0.02)
-                vim:SendMouseButtonEvent(x, y, 0, false, btn, 1)
-                task.wait(0.02)
-            end
-            log("VirtualInputManager clicked")
-        end)
-    end
-    task.wait(0.05)
-
-    -- method 5: try InputBegan/InputEnded on the button
-    pcall(function()
-        local input = Instance.new("InputObject")
-        input.UserInputType = Enum.UserInputType.MouseButton1
-        if btn.InputBegan then
-            for _, conn in pairs(getconnections(btn.InputBegan)) do
-                conn:Fire(input, false)
-                log("InputBegan fired")
-            end
-        end
-        task.wait(0.02)
-        if btn.InputEnded then
-            for _, conn in pairs(getconnections(btn.InputEnded)) do
-                conn:Fire(input, false)
-                log("InputEnded fired")
-            end
-        end
-    end)
-    task.wait(0.05)
-
-    -- method 6: try calling any internal _click method
-    pcall(function()
-        if btn._click then
-            btn:_click()
-            log("_click called")
-        end
-    end)
-    task.wait(0.05)
-
-    -- method 7: try UserInputService synthetic input
     local uis = pcall(function() return game:GetService("UserInputService") end) and game:GetService("UserInputService")
-    if uis and btn.AbsolutePosition and btn.AbsoluteSize then
-        pcall(function()
-            local x = btn.AbsolutePosition.X + (btn.AbsoluteSize.X/2)
-            local y = btn.AbsolutePosition.Y + (btn.AbsoluteSize.Y/2)
-            uis:SendMouseButtonEvent(x, y, 0, true)
-            task.wait(0.02)
-            uis:SendMouseButtonEvent(x, y, 0, false)
-            log("UserInputService clicked")
-        end)
+
+    if btn.AbsolutePosition and btn.AbsoluteSize then
+        local x = btn.AbsolutePosition.X + (btn.AbsoluteSize.X * 0.5)
+        local y = btn.AbsolutePosition.Y + (btn.AbsoluteSize.Y * 0.5)
+
+        if vim then
+            pcall(function()
+                vim:SendMouseButtonEvent(x, y, 0, true, btn, 1)
+                task.wait(0.03)
+                vim:SendMouseButtonEvent(x, y, 0, false, btn, 1)
+            end)
+        end
+
+        if uis then
+            pcall(function()
+                uis:SendMouseButtonEvent(x, y, 0, true)
+                task.wait(0.03)
+                uis:SendMouseButtonEvent(x, y, 0, false)
+            end)
+        end
     end
 end
 
 function autoComplete()
     task.spawn(function()
         local TYCOONS_FOLDER = workspace:FindFirstChild("Tycoons")
-        local lastCompleteAttempt = 0
         while getgenv().autoComplete do
-            local now = tick()
-            -- only attempt every 2 seconds to avoid freeze from GUI scanning
-            if now - lastCompleteAttempt >= 2 then
-                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                if hrp and typeof(firetouchinterest) == "function" and TYCOONS_FOLDER then
-                    for _, tycoon in ipairs(TYCOONS_FOLDER:GetChildren()) do
-                        if not getgenv().autoComplete then break end
-                        local ch = tycoon:FindFirstChild("CompletionHandler")
-                        local cp = ch and ch:FindFirstChild("CompletePart")
-                        local ti = cp and cp:FindFirstChild("TouchInterest")
-                        if cp and ti then
-                            pcall(function()
-                                firetouchinterest(hrp, cp, 0)
-                                firetouchinterest(hrp, cp, 1)
-                            end)
-                            task.wait(0.3)
-                            local yesBtn = findCompletionYesButton()
-                            if yesBtn then
-                                pressGuiButton(yesBtn)
-                                task.wait(4) -- wait for completion to process
-                                -- reclaim tycoon after completion
-                                local rs = game:GetService("ReplicatedStorage")
-                                local remotes = rs:FindFirstChild("RemoteEvents")
-                                local tycoonSel = remotes and remotes:FindFirstChild("TycoonSelected")
-                                if tycoonSel then
-                                    pcall(function()
-                                        tycoonSel:FireServer(player.Name)
-                                    end)
-                                end
-                                lastCompleteAttempt = tick()
-                                task.wait(2) -- cooldown after completing to avoid repeated scans
+            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            if hrp and typeof(firetouchinterest) == "function" and TYCOONS_FOLDER then
+                for _, tycoon in ipairs(TYCOONS_FOLDER:GetChildren()) do
+                    if not getgenv().autoComplete then break end
+                    local ch = tycoon:FindFirstChild("CompletionHandler")
+                    local cp = ch and ch:FindFirstChild("CompletePart")
+                    local ti = cp and cp:FindFirstChild("TouchInterest")
+                    if cp and ti then
+                        local previous = {}
+                        for name in pairs(toggleStarters) do
+                            previous[name] = getgenv()[name]
+                        end
+
+                        for name in pairs(toggleStarters) do
+                            if getgenv()[name] then
+                                getgenv()[name] = false
                             end
                         end
+
+                        pcall(function()
+                            firetouchinterest(hrp, cp, 0)
+                            firetouchinterest(hrp, cp, 1)
+                        end)
+                        task.wait(3)
+
+                        local yesBtn = findCompletionYesButton()
+                        if yesBtn then
+                            pressGuiButton(yesBtn)
+                        end
+
+                        task.wait(5)
+
+                        setSelectedTycoonType("RadioNoggin")
+                        local beginBtn = findBeginButton()
+                        if beginBtn then
+                            pressGuiButton(beginBtn)
+                        end
+
+                        task.wait(2)
+
+                        for name, wasOn in pairs(previous) do
+                            if wasOn then
+                                getgenv()[name] = true
+                                local starter = toggleStarters[name]
+                                if starter then starter() end
+                            end
+                        end
+
+                        break
                     end
                 end
-                lastCompleteAttempt = now
             end
-            task.wait(0.5) -- longer wait to reduce load
+            task.wait(0.5)
         end
     end)
 end
