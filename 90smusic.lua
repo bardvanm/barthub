@@ -18,6 +18,7 @@ local RunService = game:GetService("RunService")
 -- =========================
 getgenv().spamDroppers = false
 getgenv().autoCollect = false
+getgenv().autoCrate = false
 
 -- =========================
 -- SPAM FUNCTION
@@ -86,6 +87,33 @@ function autoCollect()
 end
 
 -- =========================
+-- AUTO CRATE FUNCTION
+-- =========================
+function autoCrate()
+    task.spawn(function()
+        while getgenv().autoCrate do
+            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            if hrp and typeof(firetouchinterest) == "function" then
+                for _, obj in ipairs(workspace:GetDescendants()) do
+                    if not getgenv().autoCrate then break end
+                    if obj:IsA("Model") and obj.Name == "MoneyCube" then
+                        local hitbox = obj:FindFirstChild("Hitbox")
+                        local ti = hitbox and hitbox:FindFirstChild("TouchInterest")
+                        if hitbox and ti then
+                            pcall(function()
+                                firetouchinterest(hrp, hitbox, 0)
+                                firetouchinterest(hrp, hitbox, 1)
+                            end)
+                        end
+                    end
+                end
+            end
+            RunService.Heartbeat:Wait()
+        end
+    end)
+end
+
+-- =========================
 -- GUI
 -- =========================
 local lib = loadstring(game:HttpGet("https://raw.githubusercontent.com/bardvanm/bartlib/main/bartlib.lua"))()
@@ -100,4 +128,9 @@ end)
 auto:Toggle("Auto Collect", function(v)
     getgenv().autoCollect = v
     if v then autoCollect() end
+end)
+
+auto:Toggle("Auto Crate", function(v)
+    getgenv().autoCrate = v
+    if v then autoCrate() end
 end)
