@@ -21,6 +21,7 @@ getgenv().autoCollect = false
 getgenv().autoCrate = false
 getgenv().autoCrateDelay = 0.05
 getgenv().autoUpgrade = false
+getgenv().autoSave = false
 
 -- tracked crates and connections to avoid heavy rescans
 local autoCrateCubes = {}
@@ -165,12 +166,12 @@ function autoUpgrade()
                                 local ti = btn:FindFirstChild("TouchInterest")
                                 if ti then
                                     local parentName = tostring(btn.Parent and btn.Parent.Name or ""):lower()
-                                    local isPrio = parentName:find("dropper") or parentName:find("upgrader") or parentName:find("conveyor")
+                                    local isPrio = parentName:find("dropper") or parentName:find("upgrader") or parentName:find("conveyor") or parentName:find("stairs") or parentName:find("stair")
                                     if not isPrio then
                                         local gp = btn.Parent and btn.Parent.Parent
                                         if gp then
                                             local gpName = tostring(gp.Name):lower()
-                                            isPrio = gpName:find("dropper") or gpName:find("upgrader") or gpName:find("conveyor")
+                                            isPrio = gpName:find("dropper") or gpName:find("upgrader") or gpName:find("conveyor") or gpName:find("stairs") or gpName:find("stair")
                                         end
                                     end
                                     if isPrio then table.insert(prio, btn) else table.insert(rest, btn) end
@@ -188,10 +189,33 @@ function autoUpgrade()
                             end
                         end
 
-                        tap(prio)
-                        tap(rest)
+                        if #prio > 0 then
+                            tap(prio)
+                        else
+                            tap(rest)
+                        end
                     end
                 end
+            end
+            RunService.Heartbeat:Wait()
+        end
+    end)
+end
+
+-- =========================
+-- AUTO SAVE FUNCTION
+-- =========================
+function autoSave()
+    task.spawn(function()
+        local ReplicatedStorage = game:GetService("ReplicatedStorage")
+        local remotes = ReplicatedStorage:FindFirstChild("RemoteEvents") or ReplicatedStorage:WaitForChild("RemoteEvents", 5)
+        local manual = remotes and (remotes:FindFirstChild("ManualSave") or remotes:WaitForChild("ManualSave", 5))
+        while getgenv().autoSave do
+            if manual and manual.FireServer then
+                pcall(function() manual:FireServer() end)
+            else
+                remotes = ReplicatedStorage:FindFirstChild("RemoteEvents")
+                manual = remotes and remotes:FindFirstChild("ManualSave")
             end
             RunService.Heartbeat:Wait()
         end
@@ -227,4 +251,9 @@ end)
 auto:Toggle("Auto Upgrade", function(v)
     getgenv().autoUpgrade = v
     if v then autoUpgrade() end
+end)
+
+auto:Toggle("Auto Save", function(v)
+    getgenv().autoSave = v
+    if v then autoSave() end
 end)
